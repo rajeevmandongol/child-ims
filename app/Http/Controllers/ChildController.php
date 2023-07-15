@@ -10,7 +10,21 @@ class ChildController extends Controller {
 
     // Field Names and Validation Rules
 
-    private $fieldNames = [
+    protected $fieldTitles = [
+        "Child First Name",
+        "Child Middle Name",
+        "Child Last Name",
+        "Child Age",
+        "Gender",
+        "Different Address?",
+        "Child Address",
+        "Child City",
+        "Child State",
+        "Country",
+        "Child Zip Code"
+    ];
+
+    protected $fieldNames = [
         "child_first_name",
         "child_middle_name",
         "child_last_name",
@@ -24,18 +38,18 @@ class ChildController extends Controller {
         "child_zip_code"
     ];
 
-    private $validationRules = [
-        "child_first_name.*" =>  array("required", "regex:/^[a-zA-Z\s]+$/"),
-        "child_middle_name.*" =>  array("required", "regex:/^[a-zA-Z\s]+$/"),
-        "child_last_name.*" =>  array("required", "regex:/^[a-zA-Z\s]+$/"),
-        "child_age.*" => "required|numeric",
-        "child_gender.*" => "required",
-        "child_different_address.*" => "nullable|accepted",
-        "child_address.*" => "nullable|string",
-        "child_city.*" => "nullable|string",
-        "child_state.*" => "nullable|string",
-        "child_country.*" => "nullable|string",
-        "child_zip_code.*" => "nullable|numeric",
+    protected $validationRules = [
+        "child_first_name.*" =>  ["required", "regex:/^[a-zA-Z\s]+$/"],
+        "child_middle_name.*" =>  ["required", "regex:/^[a-zA-Z\s]+$/"],
+        "child_last_name.*" =>  ["required", "regex:/^[a-zA-Z\s]+$/"],
+        "child_age.*" => ["required", "numeric"],
+        "child_gender.*" => ["required"],
+        "child_different_address.*" => ["nullable", "accepted"],
+        "child_address.*" => ["nullable", "string"],
+        "child_city.*" => ["nullable", "string"],
+        "child_state.*" => ["nullable", "string"],
+        "child_country.*" => ["nullable", "string"],
+        "child_zip_code.*" => ["nullable", "numeric"],
     ];
 
 
@@ -44,7 +58,10 @@ class ChildController extends Controller {
      */
     public function index() {
         $children = Child::all();
-        return view("children.index", ["children" => $children]);
+        return view("children.index", [
+            'fieldTitles' => $this->fieldTitles,
+            "children" => $children
+        ]);
     }
 
     /**
@@ -63,81 +80,44 @@ class ChildController extends Controller {
 
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
-        } else {
+        }
 
-            // Process the validated child data and update or create records
-            $childData = $request->only($this->fieldNames);
+        $childData = $request->only($this->fieldNames);
 
-            foreach ($childData["child_first_name"] as $index => $firstName) {
+        foreach ($childData["child_first_name"] as $index => $firstName) {
+            $child_different_address = 0;
 
-                $child_different_address = 0;
+            // Check if child has a different address
+            if (!is_null($request->input("child_different_address")) && array_key_exists($index, $request->input("child_different_address"))) {
+                $child_different_address = ($request->input("child_different_address")[$index] === "on") ? 1 : 0;
+            }
 
-                if (!is_null($request->input("child_different_address")) && array_key_exists($index, $request->input("child_different_address"))) {
-                    $child_different_address = $childData["child_different_address"][$index];
-                    $child_different_address = ($child_different_address === "on") ? 1 : 0;
-                }
-                if (!is_null($request->input("id")) && array_key_exists($index, $request->input("id"))) {
-                    $childId = $request->input("id")[$index];
+            $childAttributes = [
+                "child_first_name" => $firstName,
+                "child_middle_name" => $childData["child_middle_name"][$index],
+                "child_last_name" => $childData["child_last_name"][$index],
+                "child_age" => $childData["child_age"][$index],
+                "child_gender" => $childData["child_gender"][$index],
+                "child_different_address" => $child_different_address,
+            ];
 
-                    if ($child_different_address === 0) {
-                        Child::updateOrCreate(
-                            // If id is found then update the record
-                            ["id" => $childId],
-                            [
-                                "child_first_name" => $firstName,
-                                "child_middle_name" => $childData["child_middle_name"][$index],
-                                "child_last_name" => $childData["child_last_name"][$index],
-                                "child_age" => $childData["child_age"][$index],
-                                "child_gender" => $childData["child_gender"][$index],
-                                "child_different_address" => $child_different_address,
-                            ]
-                        );
-                    } else {
+            // Add additional attributes if child has a different address
+            if ($child_different_address === 1) {
+                $childAttributes = array_merge($childAttributes, [
+                    "child_address" => $childData["child_address"][$index],
+                    "child_city" => $childData["child_city"][$index],
+                    "child_state" => $childData["child_state"][$index],
+                    "child_country" => $childData["child_country"][$index],
+                    "child_zip_code" => $childData["child_zip_code"][$index],
+                ]);
+            }
 
-                        Child::updateOrCreate(
-                            ["id" => $childId],
-                            [
-                                "child_first_name" => $firstName,
-                                "child_middle_name" => $childData["child_middle_name"][$index],
-                                "child_last_name" => $childData["child_last_name"][$index],
-                                "child_age" => $childData["child_age"][$index],
-                                "child_gender" => $childData["child_gender"][$index],
-                                "child_different_address" => $child_different_address,
-                                "child_address" => $childData["child_address"][$index],
-                                "child_city" => $childData["child_city"][$index],
-                                "child_state" => $childData["child_state"][$index],
-                                "child_country" => $childData["child_country"][$index],
-                                "child_zip_code" => $childData["child_zip_code"][$index],
-                            ]
-                        );
-                    }
-                } else {
-
-                    if ($child_different_address === 0) {
-                        Child::create([
-                            "child_first_name" => $firstName,
-                            "child_middle_name" => $childData["child_middle_name"][$index],
-                            "child_last_name" => $childData["child_last_name"][$index],
-                            "child_age" => $childData["child_age"][$index],
-                            "child_gender" => $childData["child_gender"][$index],
-                            "child_different_address" => $child_different_address,
-                        ]);
-                    } else {
-                        Child::create([
-                            "child_first_name" => $firstName,
-                            "child_middle_name" => $childData["child_middle_name"][$index],
-                            "child_last_name" => $childData["child_last_name"][$index],
-                            "child_age" => $childData["child_age"][$index],
-                            "child_gender" => $childData["child_gender"][$index],
-                            "child_different_address" => $child_different_address,
-                            "child_address" => $childData["child_address"][$index],
-                            "child_city" => $childData["child_city"][$index],
-                            "child_state" => $childData["child_state"][$index],
-                            "child_country" => $childData["child_country"][$index],
-                            "child_zip_code" => $childData["child_zip_code"][$index],
-                        ]);
-                    }
-                }
+            // Check if child record already exists
+            if (!is_null($request->input("id")) && array_key_exists($index, $request->input("id"))) {
+                $childId = $request->input("id")[$index];
+                Child::updateOrCreate(["id" => $childId], $childAttributes);
+            } else {
+                Child::create($childAttributes);
             }
         }
 

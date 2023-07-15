@@ -85,28 +85,44 @@
             color: red;
             font-weight: 500;
         }
+
+        .disabled {
+            pointer-events: none
+        }
     </style>
 </head>
 
 <body class="antialiased">
 
-    @yield('content')
+    <div class="container-fluid">
+        @yield('content')
+    </div>
 
     <script>
+        /*
+        Initialization of table-related variables and element selections.
+        */
+
+        // Select the table element
         const table = document.querySelector("table");
+
+        // Select the table body element
         const inputTableBody = document.querySelector("table#table tbody");
+
+        // Select all rows within the table body
         let allRows = document.querySelectorAll("#table tbody tr");
 
+        // Select elements with the "child_different_address[]" name attribute
         let differentAddress = document.querySelectorAll("input[name='child_different_address[]']");
 
-        const childAddress = document.querySelectorAll("input[name='child_address[]']");
-        const childCity = document.querySelectorAll("input[name='child_city[]']");
-        const childState = document.querySelectorAll("input[name='child_state[]']");
-        const country = document.querySelectorAll("select[name='country[]']");
-        const childZip = document.querySelectorAll("input[name='child_zip[]']");
+        /*
+            Array to store input field names and attributes:
 
-        console.log("CHILD : ", childAddress);
-
+            Each subarray contains:
+                - Element 1: Input type
+                - Element 2: Name for the input field
+                - Element 3: Boolean indicating if the input field is required (false means required, true means optional)
+        */
         const inputFieldNames = [
             ["input", "child_first_name", false],
             ["input", "child_middle_name", false],
@@ -122,6 +138,11 @@
 
         ];
 
+        /*
+            Array to store input field placeholders:
+            Each element represents the placeholder text for a corresponding input field.
+        */
+
         const inputFieldPlaceholders = [
             "Child First Name",
             "Child Middle Name",
@@ -136,10 +157,25 @@
             "Child Zip"
         ];
 
+        /*
+            Array to store country data:
+            Each subarray contains:
+                - Element 1: Country code abbreviation
+                - Element 2: Country name
+        */
+
         const countries = [
             ["us", "United States"],
             ["np", "Nepal"],
         ];
+
+
+        /*
+            Function to toggle the address fields based on checkbox state.
+            Parameters:
+                - currentCheckbox: The checkbox element triggering the function.
+        */
+
 
         function toggleChildAddress(currentCheckbox) {
             const currentRow = currentCheckbox.parentNode.parentNode;
@@ -163,6 +199,11 @@
 
         }
 
+        /*
+            Function to add a new row dynamically to the table.
+            Parameters:
+                - event: The event object triggering the function.
+        */
 
         function addNewRow(event) {
             event.preventDefault();
@@ -171,88 +212,22 @@
 
             const tr = document.createElement("tr");
             let td = document.createElement("td");
-            const button = document.createElement("button");
 
-            button.classList.add("btn");
-            button.classList.add("btn-danger");
+            const button = createDeleteButton();
 
-            button.innerHTML = '<i class="fa-solid fa-trash"></i>';
             tr.appendChild(td);
 
             td.appendChild(button);
             for (let index = 0; index < inputFieldNames.length; index++) {
-                console.log(inputFieldNames[0][0]);
                 if (inputFieldNames[index][0] === "checkbox") {
-                    td = document.createElement("td");
-
-                    const tempInput = document.createElement("input");
-                    tempInput.type = inputFieldNames[index][0];
-                    tempInput.name = inputFieldNames[index][1] + `[${rowCount}]`;
-                    tempInput.id = inputFieldNames[index][1] + (differentAddress.length);
-                    tempInput.addEventListener('click', function() {
-                        toggleChildAddress(this);
-                    });;
-
-                    const tempLabel = document.createElement("label");
-                    tempLabel.textContent = inputFieldPlaceholders[index];
-                    tempLabel.htmlFor = inputFieldNames[index][1] + (differentAddress.length);
-
-                    td.appendChild(tempInput);
-                    td.appendChild(tempLabel);
-                    tr.appendChild(td);
+                    td = createCheckbox(index, rowCount);
                 }
                 if (inputFieldNames[index][0] === "input") {
-                    td = document.createElement("td");
-
-                    if (inputFieldNames[index][2] === false) {
-                        td.innerHTML = "<span class='required'>*</span>";
-                    }
-                    const tempInput = document.createElement("input");
-
-                    tempInput.name = inputFieldNames[index][1] + `[${rowCount}]`;
-                    tempInput.placeholder = inputFieldPlaceholders[index];
-
-                    if (inputFieldNames[index][2] === true) {
-                        tempInput.toggleAttribute("disabled");
-                    }
-
-                    td.appendChild(tempInput);
-                    tr.appendChild(td);
+                    td = createInputField(index, rowCount);
                 } else if (inputFieldNames[index][0] === "select") {
-                    td = document.createElement("td");
-
-                    const tempInput = document.createElement("select");
-                    tempInput.setAttribute("name", inputFieldNames[index][1] + `[${rowCount}]`)
-                    if (inputFieldNames[index][1] === "child_gender") {
-
-                        if (inputFieldNames[index][2] === false) {
-                            td.innerHTML = "<span class='required'>*</span>";
-                        }
-                        const female = document.createElement("option");
-                        female.textContent = "Female";
-                        female.value = "female";
-
-                        const male = document.createElement("option");
-                        male.textContent = "Male";
-                        male.value = "male";
-
-                        tempInput.appendChild(female);
-                        tempInput.appendChild(male);
-                    } else if (inputFieldNames[index][1] === "child_country") {
-                        countries.forEach((countryData, index) => {
-                            const tempOption = document.createElement("option");
-                            tempOption.textContent = countryData[1];
-                            tempOption.value = countryData[0];
-
-                            tempInput.appendChild(tempOption);
-
-                        });
-                        tempInput.toggleAttribute("disabled");
-                    }
-
-                    td.appendChild(tempInput);
-                    tr.appendChild(td);
+                    td = createSelectField(index, rowCount);
                 }
+                tr.appendChild(td);
 
             }
 
@@ -261,14 +236,177 @@
             updateDifferentAddressList();
         }
 
+
+        /*
+            Function to create a delete button element with styling classes.
+            Returns:
+                - button: The newly created delete button element.
+        */
+
+        function createDeleteButton() {
+            const button = document.createElement("button");
+
+            button.classList.add("btn");
+            button.classList.add("btn-secondary");
+            button.classList.add("disabled");
+
+            button.innerHTML = '<i class="fa-solid fa-trash"></i>';
+            return button;
+        }
+
+        /*
+            Function to create an input field element.
+            Parameters:
+                - index: The index of the input field in the inputFieldNames array.
+                - rowCount: The current number of rows in the table.
+            Returns:
+                - td: The newly created table cell containing the input field.
+        */
+
+        function createInputField(index, rowCount) {
+            const td = document.createElement("td");
+
+            if (inputFieldNames[index][2] === false) {
+                td.innerHTML = "<span class='required'>*</span>";
+            }
+            const tempInput = document.createElement("input");
+
+            tempInput.name = inputFieldNames[index][1] + `[${rowCount}]`;
+            tempInput.placeholder = inputFieldPlaceholders[index];
+
+            if (inputFieldNames[index][2] === true) {
+                tempInput.toggleAttribute("disabled");
+            }
+
+            td.appendChild(tempInput);
+
+            return td;
+        }
+
+        /*
+                Function to create an input field element type checkbox.
+                Parameters:
+                    - index: The index of the input field in the inputFieldNames array.
+                    - rowCount: The current number of rows in the table.
+                Returns:
+                    - td: The newly created table cell containing the input field.
+        */
+
+        function createCheckbox(index, rowCount) {
+            const td = document.createElement("td");
+
+            const tempInput = document.createElement("input");
+            tempInput.type = inputFieldNames[index][0];
+            tempInput.name = inputFieldNames[index][1] + `[${rowCount}]`;
+            tempInput.id = inputFieldNames[index][1] + (differentAddress.length);
+            tempInput.addEventListener('click', function() {
+                toggleChildAddress(this);
+            });;
+
+            const tempLabel = document.createElement("label");
+            tempLabel.textContent = inputFieldPlaceholders[index];
+            tempLabel.htmlFor = inputFieldNames[index][1] + (differentAddress.length);
+
+            td.appendChild(tempInput);
+            td.appendChild(tempLabel);
+            return td;
+        }
+
+
+        /*
+                Function to create an select input element.
+                Parameters:
+                    - index: The index of the input field in the inputFieldNames array.
+                    - rowCount: The current number of rows in the table.
+                Returns:
+                    - td: The newly created table cell containing the input field.
+        */
+
+        function createSelectField(index, rowCount) {
+            const td = document.createElement("td");
+
+            const tempInput = document.createElement("select");
+            tempInput.setAttribute("name", inputFieldNames[index][1] + `[${rowCount}]`)
+            if (inputFieldNames[index][1] === "child_gender") {
+
+                createSelectForGender(index, td, tempInput);
+            } else if (inputFieldNames[index][1] === "child_country") {
+                createSelectForCountry(index, tempInput);
+            }
+
+            td.appendChild(tempInput);
+
+            return td;
+        }
+
+
+        /*
+            Function to create a select field for gender options.
+            Parameters:
+                - index: The index of the select field in the inputFieldNames array.
+                - td: The table cell element to append the select field.
+                - tempInput: The select field element to populate with options.
+        */
+
+        function createSelectForGender(index, td, tempInput) {
+            if (inputFieldNames[index][2] === false) {
+                td.innerHTML = "<span class='required'>*</span>";
+            }
+            const female = document.createElement("option");
+            female.textContent = "Female";
+            female.value = "female";
+
+            const male = document.createElement("option");
+            male.textContent = "Male";
+            male.value = "male";
+
+            tempInput.appendChild(female);
+            tempInput.appendChild(male);
+
+        }
+
+        /*
+            Function to create a select field for country options.
+            Parameters:
+                - index: The index of the select field in the inputFieldNames array.
+                - tempInput: The select field element to populate with options.
+        */
+
+        function createSelectForCountry(index, tempInput) {
+            countries.forEach((countryData, index) => {
+                const tempOption = document.createElement("option");
+                tempOption.textContent = countryData[1];
+                tempOption.value = countryData[0];
+
+                tempInput.appendChild(tempOption);
+
+            });
+            tempInput.toggleAttribute("disabled");
+        }
+
+        /*
+            Function to update the list of elements with the "child_different_address[]" name attribute.
+            Updates the differentAddress and allRows variables accordingly.
+        */
+
         function updateDifferentAddressList() {
             differentAddress = document.querySelectorAll("input[name='child_different_address[]']");
             allRows = Array.from(document.querySelectorAll("#table tbody tr"));
         }
 
+
+        /*
+            Function to delete a child record.
+            Parameters:
+                - event: The event object triggering the function.
+                - rowId: The ID of the row containing the record to be deleted.
+        */
+
         function deleteChildRecord(event, rowId) {
             event.preventDefault();
             if (confirm('Are you sure you want to delete this record?')) {
+
+                // Submit the corresponding delete form
                 document.getElementById('delete-form-' + rowId).submit();
             }
         }
